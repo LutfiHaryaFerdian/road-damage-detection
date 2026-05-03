@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Road Damage Detection</title>
+  </head>
+  <body>
+    <h2>Upload Gambar Jalan</h2>
+
+    <input type="file" id="fileInput" />
+    <button onclick="upload()">Deteksi</button>
+
+    <h3>Hasil:</h3>
+    <img id="result" width="500" />
+
+    <script>
+      async function upload() {
+        const fileInput = document.getElementById("fileInput");
+        const file = fileInput.files[0];
+
+        let formData = new FormData();
+        formData.append("file", file);
+
+        let response = await fetch("http://127.0.0.1:8000/predict", {
+          method: "POST",
+          body: formData,
+        });
+
+        let blob = await response.blob();
+        let url = URL.createObjectURL(blob);
+
+        document.getElementById("result").src = url;
+      }
+    </script>
+  </body>
+</html>

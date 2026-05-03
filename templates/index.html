@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Road Damage AI — Deteksi Kerusakan Jalan</title>
+  <meta name="description" content="Sistem deteksi kerusakan jalan otomatis menggunakan YOLOv8. Upload foto jalan dan dapatkan analisis retak dan lubang secara instan." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+
+<!-- ── Particles background ───────────────────────────────────────────── -->
+<div class="particles" id="particles"></div>
+
+<!-- ── Navbar ────────────────────────────────────────────────────────── -->
+<nav class="navbar">
+  <div class="nav-brand">
+    <span class="nav-icon">🛣️</span>
+    <span class="nav-title">Road Damage <span class="gradient-text">AI</span></span>
+  </div>
+  <div class="nav-badge">YOLOv8 · 4 Kelas</div>
+</nav>
+
+<!-- ── Hero ──────────────────────────────────────────────────────────── -->
+<header class="hero">
+  <div class="hero-content">
+    <div class="pill-badge">✨ Powered by YOLOv8</div>
+    <h1>Deteksi Kerusakan Jalan<br /><span class="gradient-text">Secara Otomatis</span></h1>
+    <p class="hero-sub">Upload foto jalan — AI akan mendeteksi retak memanjang, retak melintang, retak kulit buaya, dan lubang dalam hitungan detik.</p>
+
+    <div class="class-pills">
+      <span class="pill" style="--c:#f59e0b">↔️ Retak Memanjang</span>
+      <span class="pill" style="--c:#ef4444">↕️ Retak Melintang</span>
+      <span class="pill" style="--c:#8b5cf6">🐊 Retak Kulit Buaya</span>
+      <span class="pill" style="--c:#06b6d4">⚠️ Lubang</span>
+    </div>
+  </div>
+</header>
+
+<!-- ── Main ──────────────────────────────────────────────────────────── -->
+<main class="container">
+
+  <!-- Upload Card -->
+  <section class="card upload-card" id="uploadSection">
+    <div class="card-header">
+      <h2>📤 Upload Gambar</h2>
+      <p>Format: JPG, PNG, WEBP — Maks. 16 MB</p>
+    </div>
+
+    <div class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="Area upload gambar">
+      <div class="drop-icon" id="dropIcon">📁</div>
+      <p class="drop-title" id="dropTitle">Drag &amp; drop gambar di sini</p>
+      <p class="drop-sub" id="dropSub">atau klik untuk memilih file</p>
+      <input type="file" id="fileInput" accept="image/*" hidden />
+    </div>
+
+    <!-- Preview -->
+    <div class="preview-wrap hidden" id="previewWrap">
+      <img id="previewImg" class="preview-img" alt="Preview gambar yang diupload" />
+      <button class="btn-ghost" id="resetBtn" aria-label="Ganti gambar">🔄 Ganti Gambar</button>
+    </div>
+
+    <button class="btn-primary" id="detectBtn" disabled>
+      <span id="detectLabel">Pilih gambar terlebih dahulu</span>
+    </button>
+  </section>
+
+  <!-- Loading -->
+  <section class="card loading-card hidden" id="loadingSection">
+    <div class="spinner"></div>
+    <p class="loading-text">Menganalisis gambar...</p>
+    <p class="loading-sub">Model AI sedang memproses deteksi kerusakan</p>
+  </section>
+
+  <!-- Results -->
+  <section class="card result-card hidden" id="resultSection">
+    <div class="card-header">
+      <h2>🎯 Hasil Deteksi</h2>
+      <button class="btn-ghost" id="newDetectBtn">+ Deteksi Baru</button>
+    </div>
+
+    <!-- Stats row -->
+    <div class="stats-row" id="statsRow"></div>
+
+    <!-- Result image -->
+    <div class="result-img-wrap">
+      <img id="resultImg" class="result-img" alt="Hasil deteksi kerusakan jalan" />
+      <a id="downloadBtn" class="btn-download" download="hasil_deteksi.jpg">⬇️ Unduh Hasil</a>
+    </div>
+
+    <!-- Detection table -->
+    <div id="detectionTableWrap" class="table-wrap hidden">
+      <h3 class="section-title">📋 Detail Deteksi</h3>
+      <div class="table-scroll">
+        <table class="det-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Jenis Kerusakan</th>
+              <th>Keyakinan</th>
+              <th>Koordinat (px)</th>
+            </tr>
+          </thead>
+          <tbody id="detectionTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- No detections -->
+    <div class="no-detect hidden" id="noDetectMsg">
+      <span class="no-detect-icon">✅</span>
+      <p>Tidak ada kerusakan terdeteksi.</p>
+      <p class="no-detect-sub">Jalan terlihat dalam kondisi baik.</p>
+    </div>
+  </section>
+
+  <!-- Error -->
+  <section class="card error-card hidden" id="errorSection">
+    <div class="error-icon">⚠️</div>
+    <p class="error-title" id="errorMsg">Terjadi kesalahan</p>
+    <button class="btn-ghost" id="errorRetryBtn">Coba Lagi</button>
+  </section>
+
+</main>
+
+<!-- ── Footer ────────────────────────────────────────────────────────── -->
+<footer class="footer">
+  <p>Road Damage AI · YOLOv8 · 4 Kelas Kerusakan Jalan</p>
+</footer>
+
+<script src="/static/js/main.js"></script>
+</body>
+</html>
