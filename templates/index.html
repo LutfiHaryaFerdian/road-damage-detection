@@ -1,135 +1,346 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Road Damage AI — Deteksi Kerusakan Jalan</title>
-  <meta name="description" content="Sistem deteksi kerusakan jalan otomatis menggunakan YOLOv8. Upload foto jalan dan dapatkan analisis retak dan lubang secara instan." />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/css/style.css" />
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Road Damage AI — Deteksi Kerusakan Jalan</title>
+<meta name="description" content="Sistem deteksi kerusakan jalan real-time menggunakan YOLOv8. Webcam, upload gambar, dan video."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config={darkMode:'class',theme:{extend:{colors:{neon:{'cyan':'#00d4ff','purple':'#7c3aed','green':'#00ff88','orange':'#f59e0b'},dark:{'900':'#0a0e1a','800':'#0f1629','700':'#141d35','600':'#1a2444'}},fontFamily:{sans:['Inter','sans-serif'],mono:['JetBrains Mono','monospace']}}}}
+</script>
+<link rel="stylesheet" href="/static/css/style.css"/>
 </head>
-<body>
+<body class="bg-dark-900 text-white font-sans min-h-screen dark">
 
-<!-- ── Particles background ───────────────────────────────────────────── -->
-<div class="particles" id="particles"></div>
+<!-- BG Grid -->
+<div class="fixed inset-0 bg-grid opacity-20 pointer-events-none z-0"></div>
+<div class="fixed inset-0 bg-gradient-radial pointer-events-none z-0"></div>
 
-<!-- ── Navbar ────────────────────────────────────────────────────────── -->
-<nav class="navbar">
-  <div class="nav-brand">
-    <span class="nav-icon">🛣️</span>
-    <span class="nav-title">Road Damage <span class="gradient-text">AI</span></span>
+<!-- NAVBAR -->
+<nav class="fixed top-0 left-0 right-0 z-50 glass-nav border-b border-white/10">
+  <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-400 to-purple-600 flex items-center justify-center text-lg font-bold shadow-neon-cyan">🛣️</div>
+      <span class="font-bold text-lg">Road Damage <span class="neon-text">AI</span></span>
+    </div>
+    <!-- Tabs -->
+    <div class="hidden md:flex items-center gap-1 bg-white/5 rounded-xl p-1">
+      <button onclick="showPage('home')" id="tab-home" class="tab-btn active-tab">🏠 Home</button>
+      <button onclick="showPage('realtime')" id="tab-realtime" class="tab-btn">📷 Realtime</button>
+      <button onclick="showPage('image')" id="tab-image" class="tab-btn">🖼️ Image</button>
+      <button onclick="showPage('video')" id="tab-video" class="tab-btn">🎬 Video</button>
+      <button onclick="showPage('about')" id="tab-about" class="tab-btn">ℹ️ About</button>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+      <span id="model-status-badge" class="text-xs text-green-400 font-mono">YOLOv8 Online</span>
+    </div>
   </div>
-  <div class="nav-badge">YOLOv8 · 4 Kelas</div>
+  <!-- Mobile tabs -->
+  <div class="md:hidden flex overflow-x-auto gap-1 px-4 pb-2">
+    <button onclick="showPage('home')" id="tab-home-m" class="tab-btn-sm active-tab">🏠</button>
+    <button onclick="showPage('realtime')" id="tab-realtime-m" class="tab-btn-sm">📷</button>
+    <button onclick="showPage('image')" id="tab-image-m" class="tab-btn-sm">🖼️</button>
+    <button onclick="showPage('video')" id="tab-video-m" class="tab-btn-sm">🎬</button>
+    <button onclick="showPage('about')" id="tab-about-m" class="tab-btn-sm">ℹ️</button>
+  </div>
 </nav>
 
-<!-- ── Hero ──────────────────────────────────────────────────────────── -->
-<header class="hero">
-  <div class="hero-content">
-    <div class="pill-badge">✨ Powered by YOLOv8</div>
-    <h1>Deteksi Kerusakan Jalan<br /><span class="gradient-text">Secara Otomatis</span></h1>
-    <p class="hero-sub">Upload foto jalan — AI akan mendeteksi retak memanjang, retak melintang, retak kulit buaya, dan lubang dalam hitungan detik.</p>
+<div class="pt-20 md:pt-16 relative z-10">
 
-    <div class="class-pills">
-      <span class="pill" style="--c:#f59e0b">↔️ Retak Memanjang</span>
-      <span class="pill" style="--c:#ef4444">↕️ Retak Melintang</span>
-      <span class="pill" style="--c:#8b5cf6">🐊 Retak Kulit Buaya</span>
-      <span class="pill" style="--c:#06b6d4">⚠️ Lubang</span>
-    </div>
-  </div>
-</header>
-
-<!-- ── Main ──────────────────────────────────────────────────────────── -->
-<main class="container">
-
-  <!-- Upload Card -->
-  <section class="card upload-card" id="uploadSection">
-    <div class="card-header">
-      <h2>📤 Upload Gambar</h2>
-      <p>Format: JPG, PNG, WEBP — Maks. 16 MB</p>
+<!-- ═══════════════════════════ HOME PAGE ═══════════════════════════ -->
+<div id="page-home" class="page-section">
+  <div class="max-w-7xl mx-auto px-4 py-8">
+    <!-- Hero -->
+    <div class="text-center mb-12">
+      <div class="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-1.5 text-sm text-cyan-400 mb-4">
+        <span class="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-pulse"></span>
+        Powered by YOLOv8 · Real-time Detection
+      </div>
+      <h1 class="text-4xl md:text-6xl font-extrabold mb-4 leading-tight">
+        Deteksi Kerusakan Jalan<br/><span class="neon-text">Secara Otomatis</span>
+      </h1>
+      <p class="text-gray-400 text-lg max-w-2xl mx-auto">Sistem AI berbasis YOLOv8 untuk mendeteksi retak memanjang, retak melintang, retak kulit buaya, dan lubang secara real-time.</p>
     </div>
 
-    <div class="drop-zone" id="dropZone" tabindex="0" role="button" aria-label="Area upload gambar">
-      <div class="drop-icon" id="dropIcon">📁</div>
-      <p class="drop-title" id="dropTitle">Drag &amp; drop gambar di sini</p>
-      <p class="drop-sub" id="dropSub">atau klik untuk memilih file</p>
-      <input type="file" id="fileInput" accept="image/*" hidden />
-    </div>
-
-    <!-- Preview -->
-    <div class="preview-wrap hidden" id="previewWrap">
-      <img id="previewImg" class="preview-img" alt="Preview gambar yang diupload" />
-      <button class="btn-ghost" id="resetBtn" aria-label="Ganti gambar">🔄 Ganti Gambar</button>
-    </div>
-
-    <button class="btn-primary" id="detectBtn" disabled>
-      <span id="detectLabel">Pilih gambar terlebih dahulu</span>
-    </button>
-  </section>
-
-  <!-- Loading -->
-  <section class="card loading-card hidden" id="loadingSection">
-    <div class="spinner"></div>
-    <p class="loading-text">Menganalisis gambar...</p>
-    <p class="loading-sub">Model AI sedang memproses deteksi kerusakan</p>
-  </section>
-
-  <!-- Results -->
-  <section class="card result-card hidden" id="resultSection">
-    <div class="card-header">
-      <h2>🎯 Hasil Deteksi</h2>
-      <button class="btn-ghost" id="newDetectBtn">+ Deteksi Baru</button>
-    </div>
-
-    <!-- Stats row -->
-    <div class="stats-row" id="statsRow"></div>
-
-    <!-- Result image -->
-    <div class="result-img-wrap">
-      <img id="resultImg" class="result-img" alt="Hasil deteksi kerusakan jalan" />
-      <a id="downloadBtn" class="btn-download" download="hasil_deteksi.jpg">⬇️ Unduh Hasil</a>
-    </div>
-
-    <!-- Detection table -->
-    <div id="detectionTableWrap" class="table-wrap hidden">
-      <h3 class="section-title">📋 Detail Deteksi</h3>
-      <div class="table-scroll">
-        <table class="det-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Jenis Kerusakan</th>
-              <th>Keyakinan</th>
-              <th>Koordinat (px)</th>
-            </tr>
-          </thead>
-          <tbody id="detectionTableBody"></tbody>
-        </table>
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+      <div class="glass-card p-5 text-center">
+        <div class="text-3xl font-bold neon-text" id="stat-total">0</div>
+        <div class="text-xs text-gray-400 mt-1">Total Deteksi</div>
+      </div>
+      <div class="glass-card p-5 text-center">
+        <div class="text-3xl font-bold text-green-400" id="stat-conf">-</div>
+        <div class="text-xs text-gray-400 mt-1">Avg Confidence</div>
+      </div>
+      <div class="glass-card p-5 text-center">
+        <div class="text-3xl font-bold text-purple-400" id="stat-fps">-</div>
+        <div class="text-xs text-gray-400 mt-1">FPS Realtime</div>
+      </div>
+      <div class="glass-card p-5 text-center">
+        <div class="text-3xl font-bold text-orange-400" id="stat-uptime">-</div>
+        <div class="text-xs text-gray-400 mt-1">Uptime (s)</div>
       </div>
     </div>
 
-    <!-- No detections -->
-    <div class="no-detect hidden" id="noDetectMsg">
-      <span class="no-detect-icon">✅</span>
-      <p>Tidak ada kerusakan terdeteksi.</p>
-      <p class="no-detect-sub">Jalan terlihat dalam kondisi baik.</p>
+    <!-- Class Cards -->
+    <h2 class="text-xl font-bold mb-4">🔍 Jenis Kerusakan yang Dideteksi</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+      <div class="glass-card p-5 border-l-4" style="border-color:#f59e0b">
+        <div class="text-2xl mb-2">↔️</div>
+        <div class="font-semibold">Retak Memanjang</div>
+        <div class="text-xs text-gray-400 mt-1">Longitudinal Crack — retak sejajar arah jalan</div>
+      </div>
+      <div class="glass-card p-5 border-l-4" style="border-color:#ef4444">
+        <div class="text-2xl mb-2">↕️</div>
+        <div class="font-semibold">Retak Melintang</div>
+        <div class="text-xs text-gray-400 mt-1">Transverse Crack — retak tegak lurus arah jalan</div>
+      </div>
+      <div class="glass-card p-5 border-l-4" style="border-color:#8b5cf6">
+        <div class="text-2xl mb-2">🐊</div>
+        <div class="font-semibold">Retak Kulit Buaya</div>
+        <div class="text-xs text-gray-400 mt-1">Alligator Crack — pola retak seperti kulit buaya</div>
+      </div>
+      <div class="glass-card p-5 border-l-4" style="border-color:#06b6d4">
+        <div class="text-2xl mb-2">⚠️</div>
+        <div class="font-semibold">Lubang (Pothole)</div>
+        <div class="text-xs text-gray-400 mt-1">Pothole — lubang pada permukaan jalan</div>
+      </div>
     </div>
-  </section>
 
-  <!-- Error -->
-  <section class="card error-card hidden" id="errorSection">
-    <div class="error-icon">⚠️</div>
-    <p class="error-title" id="errorMsg">Terjadi kesalahan</p>
-    <button class="btn-ghost" id="errorRetryBtn">Coba Lagi</button>
-  </section>
+    <!-- Recent History -->
+    <h2 class="text-xl font-bold mb-4">🕒 Riwayat Deteksi Terbaru</h2>
+    <div class="glass-card overflow-hidden">
+      <div id="history-list" class="divide-y divide-white/5">
+        <div class="p-6 text-center text-gray-500 text-sm">Belum ada riwayat deteksi</div>
+      </div>
+    </div>
+  </div>
+</div>
 
-</main>
+<!-- ═══════════════════════════ REALTIME PAGE ═══════════════════════════ -->
+<div id="page-realtime" class="page-section hidden">
+  <div class="max-w-7xl mx-auto px-4 py-8">
+    <div class="flex items-center gap-3 mb-6">
+      <h2 class="text-2xl font-bold">📷 Realtime Camera Detection</h2>
+      <span id="rt-status-badge" class="badge-offline">OFFLINE</span>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Camera Feed -->
+      <div class="lg:col-span-2">
+        <div class="glass-card p-4">
+          <div class="relative bg-black rounded-lg overflow-hidden" style="aspect-ratio:16/9">
+            <video id="rt-video" autoplay playsinline muted class="w-full h-full object-contain"></video>
+            <canvas id="rt-canvas" class="absolute inset-0 w-full h-full"></canvas>
+            <div id="rt-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-gray-500">
+              <div class="text-6xl mb-4">📷</div>
+              <p class="text-lg font-semibold">Kamera Belum Aktif</p>
+              <p class="text-sm mt-1">Klik "Mulai Kamera" untuk memulai</p>
+            </div>
+            <!-- HUD overlays -->
+            <div id="rt-hud" class="absolute top-3 left-3 hidden">
+              <div class="bg-black/70 text-green-400 font-mono text-xs px-2 py-1 rounded flex items-center gap-2">
+                <span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
+                LIVE DETECTION
+              </div>
+            </div>
+            <div id="rt-fps-hud" class="absolute top-3 right-3 hidden">
+              <div class="bg-black/70 text-cyan-400 font-mono text-xs px-2 py-1 rounded">
+                <span id="rt-fps-val">0</span> FPS
+              </div>
+            </div>
+          </div>
+          <div class="flex gap-3 mt-4">
+            <button id="rt-start-btn" onclick="realtimeStart()" class="btn-neon flex-1">▶ Mulai Kamera</button>
+            <button id="rt-stop-btn" onclick="realtimeStop()" class="btn-ghost flex-1 hidden">⏹ Stop</button>
+          </div>
+          <div id="rt-error" class="hidden mt-3 bg-red-900/30 border border-red-500/30 text-red-400 rounded-lg p-3 text-sm"></div>
+        </div>
+      </div>
+      <!-- Stats Sidebar -->
+      <div class="space-y-4">
+        <div class="glass-card p-5">
+          <div class="text-xs text-gray-400 mb-3 font-mono">LIVE STATS</div>
+          <div class="space-y-3">
+            <div class="flex justify-between"><span class="text-sm text-gray-400">FPS</span><span id="rt-fps-side" class="font-mono text-cyan-400">-</span></div>
+            <div class="flex justify-between"><span class="text-sm text-gray-400">Deteksi</span><span id="rt-det-count" class="font-mono text-green-400">0</span></div>
+            <div class="flex justify-between"><span class="text-sm text-gray-400">Inf. Time</span><span id="rt-inf-ms" class="font-mono text-purple-400">-</span></div>
+          </div>
+        </div>
+        <div class="glass-card p-5">
+          <div class="text-xs text-gray-400 mb-3 font-mono">DETECTIONS</div>
+          <div id="rt-det-list" class="space-y-2 text-sm text-gray-400">Belum ada</div>
+        </div>
+        <div class="glass-card p-5">
+          <div class="text-xs text-gray-400 mb-3 font-mono">CLASS BREAKDOWN</div>
+          <div id="rt-class-breakdown" class="space-y-2">
+            <div class="breakdown-item" data-class="longitudinal_crack" style="--c:#f59e0b"><span>↔️ Retak Memanjang</span><span class="count">0</span></div>
+            <div class="breakdown-item" data-class="transverse_crack" style="--c:#ef4444"><span>↕️ Retak Melintang</span><span class="count">0</span></div>
+            <div class="breakdown-item" data-class="alligator_crack" style="--c:#8b5cf6"><span>🐊 Retak Buaya</span><span class="count">0</span></div>
+            <div class="breakdown-item" data-class="pothole" style="--c:#06b6d4"><span>⚠️ Lubang</span><span class="count">0</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-<!-- ── Footer ────────────────────────────────────────────────────────── -->
-<footer class="footer">
-  <p>Road Damage AI · YOLOv8 · 4 Kelas Kerusakan Jalan</p>
+<!-- ═══════════════════════════ IMAGE PAGE ═══════════════════════════ -->
+<div id="page-image" class="page-section hidden">
+  <div class="max-w-7xl mx-auto px-4 py-8">
+    <h2 class="text-2xl font-bold mb-6">🖼️ Upload Image Detection</h2>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Upload Area -->
+      <div>
+        <div class="glass-card p-6">
+          <div id="img-drop-zone" class="drop-zone" ondragover="imgDragOver(event)" ondragleave="imgDragLeave(event)" ondrop="imgDrop(event)" onclick="document.getElementById('img-file-input').click()">
+            <div id="img-drop-icon" class="text-5xl mb-3">📁</div>
+            <p class="font-semibold" id="img-drop-title">Drag & Drop atau Klik untuk Upload</p>
+            <p class="text-sm text-gray-500 mt-1">JPG, JPEG, PNG — Maks 16MB</p>
+            <input type="file" id="img-file-input" accept="image/jpeg,image/png,image/webp" class="hidden" onchange="imgFileSelected(event)"/>
+          </div>
+          <div id="img-preview-wrap" class="hidden mt-4">
+            <div class="text-xs text-gray-400 mb-2 font-mono">ORIGINAL</div>
+            <img id="img-preview" class="w-full rounded-lg object-contain max-h-64 bg-black/30"/>
+            <button onclick="imgReset()" class="btn-ghost mt-3 w-full">🔄 Ganti Gambar</button>
+          </div>
+          <button id="img-detect-btn" onclick="imgDetect()" disabled class="btn-neon w-full mt-4 opacity-50 cursor-not-allowed">
+            <span id="img-detect-label">Pilih gambar terlebih dahulu</span>
+          </button>
+        </div>
+      </div>
+      <!-- Result Area -->
+      <div>
+        <div class="glass-card p-6 h-full">
+          <div id="img-result-placeholder" class="flex flex-col items-center justify-center h-full text-gray-500 py-12">
+            <div class="text-5xl mb-3">🎯</div>
+            <p>Hasil deteksi akan muncul di sini</p>
+          </div>
+          <div id="img-loading" class="hidden flex-col items-center justify-center py-12 text-center">
+            <div class="spinner mb-4"></div>
+            <p class="text-cyan-400 font-semibold">Menganalisis gambar...</p>
+            <p class="text-gray-500 text-sm mt-1">Model AI sedang memproses</p>
+          </div>
+          <div id="img-result" class="hidden">
+            <div class="text-xs text-gray-400 mb-2 font-mono">HASIL DETEKSI</div>
+            <img id="img-result-img" class="w-full rounded-lg object-contain max-h-64 bg-black/30"/>
+            <a id="img-download-btn" class="btn-ghost mt-3 w-full text-center block" download="hasil_deteksi.jpg">⬇️ Download Hasil</a>
+            <div id="img-stats-row" class="grid grid-cols-3 gap-3 mt-4"></div>
+            <div id="img-det-table-wrap" class="mt-4"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ VIDEO PAGE ═══════════════════════════ -->
+<div id="page-video" class="page-section hidden">
+  <div class="max-w-4xl mx-auto px-4 py-8">
+    <h2 class="text-2xl font-bold mb-6">🎬 Upload Video Detection</h2>
+    <div class="glass-card p-6 mb-6">
+      <div id="vid-drop-zone" class="drop-zone" ondragover="vidDragOver(event)" ondragleave="vidDragLeave(event)" ondrop="vidDrop(event)" onclick="document.getElementById('vid-file-input').click()">
+        <div class="text-5xl mb-3">🎬</div>
+        <p class="font-semibold">Drag & Drop atau Klik untuk Upload Video</p>
+        <p class="text-sm text-gray-500 mt-1">MP4, MOV, AVI — Maks 200MB</p>
+        <input type="file" id="vid-file-input" accept="video/mp4,video/quicktime,video/avi,video/x-msvideo" class="hidden" onchange="vidFileSelected(event)"/>
+      </div>
+      <div id="vid-file-info" class="hidden mt-4 bg-white/5 rounded-lg p-3 flex items-center justify-between">
+        <div><span id="vid-file-name" class="font-mono text-sm text-cyan-400"></span><span id="vid-file-size" class="text-xs text-gray-400 ml-3"></span></div>
+        <button onclick="vidReset()" class="text-gray-500 hover:text-red-400 text-sm">✕</button>
+      </div>
+      <button id="vid-detect-btn" onclick="vidDetect()" disabled class="btn-neon w-full mt-4 opacity-50 cursor-not-allowed">Proses Video</button>
+    </div>
+
+    <!-- Progress -->
+    <div id="vid-progress-wrap" class="glass-card p-6 mb-6 hidden">
+      <div class="flex items-center justify-between mb-3">
+        <span class="font-semibold text-cyan-400">Memproses Video...</span>
+        <span id="vid-pct-text" class="font-mono text-sm">0%</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div id="vid-progress-bar" class="progress-bar-fill" style="width:0%"></div>
+      </div>
+      <p id="vid-progress-msg" class="text-xs text-gray-400 mt-2">Memulai proses...</p>
+    </div>
+
+    <!-- Result -->
+    <div id="vid-result-wrap" class="glass-card p-6 hidden">
+      <div class="text-xs text-gray-400 mb-3 font-mono">HASIL DETEKSI VIDEO</div>
+      <video id="vid-result-player" controls class="w-full rounded-lg bg-black mb-4"></video>
+      <div id="vid-result-stats" class="grid grid-cols-3 gap-4"></div>
+      <a id="vid-download-btn" class="btn-ghost mt-4 w-full text-center block" download>⬇️ Download Video Hasil</a>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════ ABOUT PAGE ═══════════════════════════ -->
+<div id="page-about" class="page-section hidden">
+  <div class="max-w-4xl mx-auto px-4 py-8">
+    <h2 class="text-2xl font-bold mb-2">ℹ️ Tentang Proyek</h2>
+    <p class="text-gray-400 mb-8">Sistem deteksi kerusakan jalan otomatis berbasis deep learning</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="glass-card p-6">
+        <h3 class="font-bold text-lg mb-3 text-cyan-400">🤖 Model AI</h3>
+        <ul class="space-y-2 text-sm text-gray-300">
+          <li class="flex gap-2"><span class="text-gray-500">Framework:</span> <span>YOLOv8 (Ultralytics)</span></li>
+          <li class="flex gap-2"><span class="text-gray-500">Model:</span> <span class="font-mono">best.pt</span></li>
+          <li class="flex gap-2"><span class="text-gray-500">Classes:</span> <span>4 jenis kerusakan</span></li>
+          <li class="flex gap-2"><span class="text-gray-500">Input:</span> <span>1280×1280px (image)</span></li>
+          <li class="flex gap-2"><span class="text-gray-500">Realtime:</span> <span>640×640px @ ~10fps</span></li>
+        </ul>
+      </div>
+      <div class="glass-card p-6">
+        <h3 class="font-bold text-lg mb-3 text-purple-400">🛠️ Tech Stack</h3>
+        <ul class="space-y-2 text-sm text-gray-300">
+          <li class="flex gap-2"><span class="text-gray-500">Backend:</span> <span>Python · Flask</span></li>
+          <li class="flex gap-2"><span class="text-gray-500">CV:</span> <span>OpenCV · Ultralytics</span></li>
+          <li class="flex gap-2"><span class="text-gray-500">Frontend:</span> <span>HTML5 · Tailwind CSS</span></li>
+          <li class="flex gap-2"><span class="text-gray-500">Camera:</span> <span>WebRTC getUserMedia</span></li>
+          <li class="flex gap-2"><span class="text-gray-500">Streaming:</span> <span>Server-Sent Events</span></li>
+        </ul>
+      </div>
+      <div class="glass-card p-6 md:col-span-2">
+        <h3 class="font-bold text-lg mb-4 text-green-400">🔍 Jenis Kerusakan Jalan</h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="text-center p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20">
+            <div class="text-2xl mb-1">↔️</div>
+            <div class="text-xs font-semibold text-yellow-400">Longitudinal Crack</div>
+            <div class="text-xs text-gray-500 mt-1">Retak Memanjang</div>
+          </div>
+          <div class="text-center p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+            <div class="text-2xl mb-1">↕️</div>
+            <div class="text-xs font-semibold text-red-400">Transverse Crack</div>
+            <div class="text-xs text-gray-500 mt-1">Retak Melintang</div>
+          </div>
+          <div class="text-center p-3 rounded-lg bg-purple-500/10 border border-purple-500/20">
+            <div class="text-2xl mb-1">🐊</div>
+            <div class="text-xs font-semibold text-purple-400">Alligator Crack</div>
+            <div class="text-xs text-gray-500 mt-1">Retak Kulit Buaya</div>
+          </div>
+          <div class="text-center p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
+            <div class="text-2xl mb-1">⚠️</div>
+            <div class="text-xs font-semibold text-cyan-400">Pothole</div>
+            <div class="text-xs text-gray-500 mt-1">Lubang Jalan</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end pt-20 -->
+
+<footer class="relative z-10 border-t border-white/10 mt-12 py-6 text-center text-sm text-gray-500">
+  Road Damage AI · YOLOv8 · 4 Kelas Kerusakan · Built with Flask & OpenCV
 </footer>
 
 <script src="/static/js/main.js"></script>
+<script src="/static/js/realtime.js"></script>
+<script src="/static/js/upload-image.js"></script>
+<script src="/static/js/upload-video.js"></script>
 </body>
 </html>
